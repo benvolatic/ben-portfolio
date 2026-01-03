@@ -1,0 +1,234 @@
+---
+// 8-bit style interactive 3D globe
+// Click and drag to spin
+---
+
+<div class="pixel-globe-container relative h-full w-full min-h-[300px]">
+  <canvas id="pixel-globe" class="h-full w-full cursor-grab active:cursor-grabbing"></canvas>
+</div>
+
+<script>
+  import * as THREE from 'three';
+
+  const canvas = document.getElementById('pixel-globe') as HTMLCanvasElement;
+
+  if (canvas) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+    camera.position.z = 2.5;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: false, // Pixelated look
+      alpha: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // 8-bit color palette
+    const colors = {
+      land: 0x22c55e,      // Green
+      water: 0x3b82f6,     // Blue (accent)
+      accent: 0x60a5fa,    // Light blue
+      grid: 0x1e40af,      // Dark blue
+    };
+
+    // Create low-poly globe (8-bit style = low segments)
+    const geometry = new THREE.IcosahedronGeometry(1, 1); // Very low poly
+
+    // Create wireframe for grid lines
+    const wireframe = new THREE.WireframeGeometry(geometry);
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: colors.grid,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const wireframeMesh = new THREE.LineSegments(wireframe, lineMaterial);
+
+    // Create solid globe with flat shading
+    const material = new THREE.MeshBasicMaterial({
+      color: colors.water,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const globe = new THREE.Mesh(geometry, material);
+
+    // Create "land masses" - randomly positioned small cubes on the surface
+    const landGroup = new THREE.Group();
+    const cubeGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+    const landMaterial = new THREE.MeshBasicMaterial({ color: colors.land });
+
+    // Generate pixelated land masses
+    const landPositions = [
+      // Rough continent shapes using spherical coordinates
+      { lat: 45, lon: -100 }, { lat: 40, lon: -95 }, { lat: 35, lon: -90 },  // North America
+      { lat: 50, lon: -5 }, { lat: 48, lon: 10 }, { lat: 45, lon: 15 },      // Europe
+      { lat: 55, lon: 40 }, { lat: 50, lon: 60 }, { lat: 45, lon: 80 },      // Russia
+      { lat: 35, lon: 105 }, { lat: 30, lon: 120 }, { lat: 25, lon: 115 },   // Asia
+      { lat: -25, lon: 135 }, { lat: -30, lon: 145 }, { lat: -35, lon: 140 }, // Australia
+      { lat: 5, lon: 20 }, { lat: -5, lon: 25 }, { lat: -15, lon: 30 },      // Africa
+      { lat: -15, lon: -60 }, { lat: -20, lon: -50 }, { lat: -25, lon: -55 }, // South America
+    ];
+
+    landPositions.forEach(({ lat, lon }) => {
+      const phi = (90 - lat) * (Math.PI / 180);
+      const theta = (lon + 180) * (Math.PI / 180);
+
+      const x = Math.sin(phi) * Math.cos(theta);
+      const y = Math.cos(phi);
+      const z = Math.sin(phi) * Math.sin(theta);
+
+      const cube = new THREE.Mesh(cubeGeo, landMaterial);
+      cube.position.set(x * 1.02, y * 1.02, z * 1.02);
+      cube.lookAt(0, 0, 0);
+      landGroup.add(cube);
+    });
+
+    // Add orbital ring
+    const ringGeo = new THREE.TorusGeometry(1.3, 0.02, 4, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: colors.accent,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMaterial);
+    ring.rotation.x = Math.PI / 2.5;
+    ring.rotation.y = 0.3;
+
+    // Add small nodes on the ring
+    const nodeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+    const nodeMaterial = new THREE.MeshBasicMaterial({ color: colors.accent });
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const node = new THREE.Mesh(nodeGeo, nodeMaterial);
+      node.position.x = Math.cos(angle) * 1.3;
+      node.position.z = Math.sin(angle) * 1.3;
+      ring.add(node);
+    }
+
+    // Group everything
+    const globeGroup = new THREE.Group();
+    globeGroup.add(globe);
+    globeGroup.add(wireframeMesh);
+    globeGroup.add(landGroup);
+    globeGroup.add(ring);
+    scene.add(globeGroup);
+
+    // Drag controls
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let velocity = { x: 0.003, y: 0.001 }; // Initial auto-rotation
+    const friction = 0.95;
+    const sensitivity = 0.005;
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+      velocity = { x: 0, y: 0 };
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+
+      velocity.x = deltaX * sensitivity;
+      velocity.y = deltaY * sensitivity;
+
+      globeGroup.rotation.y += velocity.x;
+      globeGroup.rotation.x += velocity.y;
+
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      velocity = { x: 0, y: 0 };
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      const deltaX = e.touches[0].clientX - previousMousePosition.x;
+      const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+      velocity.x = deltaX * sensitivity;
+      velocity.y = deltaY * sensitivity;
+
+      globeGroup.rotation.y += velocity.x;
+      globeGroup.rotation.x += velocity.y;
+
+      previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    });
+
+    canvas.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    // Resize handler
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const size = Math.min(rect.width, rect.height);
+      renderer.setSize(rect.width, rect.height);
+      camera.aspect = rect.width / rect.height;
+      camera.updateProjectionMatrix();
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (!isDragging) {
+        // Apply friction to velocity
+        velocity.x *= friction;
+        velocity.y *= friction;
+
+        // Keep minimum rotation if not reduced motion
+        if (!prefersReducedMotion) {
+          if (Math.abs(velocity.x) < 0.001) velocity.x = 0.002;
+        }
+
+        globeGroup.rotation.y += velocity.x;
+        globeGroup.rotation.x += velocity.y;
+      }
+
+      // Rotate ring independently
+      ring.rotation.z += 0.002;
+
+      renderer.render(scene, camera);
+    }
+
+    // Initialize
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Start animation
+    if (prefersReducedMotion) {
+      // Just render once
+      renderer.render(scene, camera);
+    } else {
+      animate();
+    }
+  }
+</script>
+
+<style>
+  .pixel-globe-container {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+</style>
