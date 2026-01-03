@@ -1,5 +1,5 @@
 ---
-// 8-bit style interactive 3D globe
+// 8-bit style interactive 3D globe with retro computers
 // Click and drag to spin
 ---
 
@@ -18,108 +18,350 @@
     // Scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-    camera.position.z = 2.5;
+    camera.position.z = 2.8;
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: false, // Pixelated look
+      antialias: false,
       alpha: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // 8-bit color palette
+    // Colors
     const colors = {
-      land: 0x22c55e,      // Green
-      water: 0x3b82f6,     // Blue (accent)
-      accent: 0x60a5fa,    // Light blue
-      grid: 0x1e40af,      // Dark blue
+      water: 0x3b82f6,
+      land: 0x22c55e,
+      grid: 0x1e40af,
+      accent: 0x60a5fa,
     };
 
-    // Create low-poly globe (8-bit style = low segments)
-    const geometry = new THREE.IcosahedronGeometry(1, 1); // Very low poly
+    // Retro computer color schemes (body, trim, screen text)
+    const computerStyles = [
+      { body: 0xc9c9c9, trim: 0x8b8b8b, screen: 0x000000, text: 0x33ff33 },  // Classic terminal green
+      { body: 0xd4c5a9, trim: 0x8b7355, screen: 0x000000, text: 0xffb833 },  // Beige PC amber
+      { body: 0xf5f5dc, trim: 0x333333, screen: 0x222222, text: 0x00ffff },  // Off-white cyan
+      { body: 0xc0c0c0, trim: 0x4a4a4a, screen: 0x000033, text: 0xffffff },  // Silver white
+      { body: 0xe8e4d9, trim: 0x6b5b4f, screen: 0x000000, text: 0x39ff14 },  // Cream neon green
+      { body: 0xa0a0a0, trim: 0x505050, screen: 0x0a0a20, text: 0xff6b35 },  // Gray orange
+      { body: 0xd2b48c, trim: 0x8b4513, screen: 0x000000, text: 0xffff00 },  // Tan yellow
+      { body: 0xb8b8b8, trim: 0x2f2f2f, screen: 0x001100, text: 0x00ff00 },  // Light gray matrix
+    ];
 
-    // Create wireframe for grid lines
-    const wireframe = new THREE.WireframeGeometry(geometry);
+    // Create textured sphere for globe with painted land masses
+    const sphereGeo = new THREE.IcosahedronGeometry(1, 2);
+
+    // Create canvas texture for land masses
+    const textureSize = 512;
+    const textureCanvas = document.createElement('canvas');
+    textureCanvas.width = textureSize;
+    textureCanvas.height = textureSize;
+    const ctx = textureCanvas.getContext('2d')!;
+
+    // Fill with ocean blue
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(0, 0, textureSize, textureSize);
+
+    // Draw pixelated land masses
+    ctx.fillStyle = '#22c55e';
+    const pixelSize = 16;
+
+    // Simplified continent shapes as pixel blocks
+    const landMasses = [
+      // North America
+      { x: 50, y: 80, w: 80, h: 60 },
+      { x: 70, y: 140, w: 50, h: 40 },
+      { x: 40, y: 100, w: 30, h: 50 },
+      // South America
+      { x: 100, y: 220, w: 40, h: 80 },
+      { x: 90, y: 260, w: 30, h: 50 },
+      // Europe
+      { x: 240, y: 80, w: 50, h: 40 },
+      { x: 260, y: 100, w: 40, h: 30 },
+      // Africa
+      { x: 250, y: 160, w: 60, h: 90 },
+      { x: 270, y: 200, w: 40, h: 60 },
+      // Asia
+      { x: 300, y: 60, w: 100, h: 50 },
+      { x: 340, y: 90, w: 80, h: 70 },
+      { x: 380, y: 130, w: 50, h: 50 },
+      { x: 320, y: 110, w: 60, h: 40 },
+      // Australia
+      { x: 400, y: 250, w: 50, h: 40 },
+      { x: 420, y: 270, w: 30, h: 30 },
+      // Russia/Northern Asia
+      { x: 280, y: 50, w: 120, h: 30 },
+      { x: 350, y: 40, w: 80, h: 40 },
+      // Greenland
+      { x: 150, y: 40, w: 40, h: 40 },
+      // Indonesia
+      { x: 390, y: 190, w: 60, h: 20 },
+      // Japan
+      { x: 430, y: 100, w: 20, h: 40 },
+    ];
+
+    // Draw pixelated land
+    landMasses.forEach(land => {
+      for (let px = 0; px < land.w; px += pixelSize) {
+        for (let py = 0; py < land.h; py += pixelSize) {
+          // Add some randomness to edges for organic look
+          if (Math.random() > 0.2 || (px > pixelSize && px < land.w - pixelSize && py > pixelSize && py < land.h - pixelSize)) {
+            ctx.fillRect(land.x + px, land.y + py, pixelSize - 1, pixelSize - 1);
+          }
+        }
+      }
+    });
+
+    const texture = new THREE.CanvasTexture(textureCanvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
+
+    // Wireframe overlay
+    const wireframe = new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.01, 1));
     const lineMaterial = new THREE.LineBasicMaterial({
       color: colors.grid,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.3,
     });
     const wireframeMesh = new THREE.LineSegments(wireframe, lineMaterial);
 
-    // Create solid globe with flat shading
-    const material = new THREE.MeshBasicMaterial({
-      color: colors.water,
-      transparent: true,
-      opacity: 0.6,
-    });
-    const globe = new THREE.Mesh(geometry, material);
+    // Create retro computers
+    const computersGroup = new THREE.Group();
 
-    // Create "land masses" - randomly positioned small cubes on the surface
-    const landGroup = new THREE.Group();
-    const cubeGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-    const landMaterial = new THREE.MeshBasicMaterial({ color: colors.land });
-
-    // Generate pixelated land masses
-    const landPositions = [
-      // Rough continent shapes using spherical coordinates
-      { lat: 45, lon: -100 }, { lat: 40, lon: -95 }, { lat: 35, lon: -90 },  // North America
-      { lat: 50, lon: -5 }, { lat: 48, lon: 10 }, { lat: 45, lon: 15 },      // Europe
-      { lat: 55, lon: 40 }, { lat: 50, lon: 60 }, { lat: 45, lon: 80 },      // Russia
-      { lat: 35, lon: 105 }, { lat: 30, lon: 120 }, { lat: 25, lon: 115 },   // Asia
-      { lat: -25, lon: 135 }, { lat: -30, lon: 145 }, { lat: -35, lon: 140 }, // Australia
-      { lat: 5, lon: 20 }, { lat: -5, lon: 25 }, { lat: -15, lon: 30 },      // Africa
-      { lat: -15, lon: -60 }, { lat: -20, lon: -50 }, { lat: -25, lon: -55 }, // South America
+    // Computer positions (lat/lon)
+    const computerPositions = [
+      { lat: 45, lon: -100 }, { lat: 40, lon: -80 },   // North America
+      { lat: 50, lon: 0 }, { lat: 48, lon: 15 },       // Europe
+      { lat: 55, lon: 50 }, { lat: 50, lon: 90 },      // Russia
+      { lat: 35, lon: 120 }, { lat: 30, lon: 105 },    // Asia
+      { lat: -25, lon: 135 },                           // Australia
+      { lat: 5, lon: 20 }, { lat: -10, lon: 25 },      // Africa
+      { lat: -20, lon: -50 },                           // South America
+      { lat: 35, lon: -5 },                             // Spain/Portugal
+      { lat: 60, lon: 25 },                             // Scandinavia
+      { lat: 35, lon: 140 },                            // Japan
     ];
 
-    landPositions.forEach(({ lat, lon }) => {
-      const phi = (90 - lat) * (Math.PI / 180);
-      const theta = (lon + 180) * (Math.PI / 180);
+    // Screen animation data for each computer
+    interface ComputerData {
+      mesh: THREE.Group;
+      screenMesh: THREE.Mesh;
+      style: typeof computerStyles[0];
+      animOffset: number;
+      animSpeed: number;
+      pattern: 'matrix' | 'dots' | 'bars' | 'scan';
+    }
+    const computerDataList: ComputerData[] = [];
 
-      const x = Math.sin(phi) * Math.cos(theta);
-      const y = Math.cos(phi);
-      const z = Math.sin(phi) * Math.sin(theta);
+    computerPositions.forEach((pos, index) => {
+      const style = computerStyles[index % computerStyles.length];
+      const computer = createRetroComputer(style, index);
 
-      const cube = new THREE.Mesh(cubeGeo, landMaterial);
-      cube.position.set(x * 1.02, y * 1.02, z * 1.02);
-      cube.lookAt(0, 0, 0);
-      landGroup.add(cube);
+      // Position on globe surface
+      const phi = (90 - pos.lat) * (Math.PI / 180);
+      const theta = (pos.lon + 180) * (Math.PI / 180);
+      const radius = 1.08;
+
+      const x = Math.sin(phi) * Math.cos(theta) * radius;
+      const y = Math.cos(phi) * radius;
+      const z = Math.sin(phi) * Math.sin(theta) * radius;
+
+      computer.group.position.set(x, y, z);
+      computer.group.lookAt(0, 0, 0);
+      computer.group.rotateX(Math.PI); // Face outward
+
+      computersGroup.add(computer.group);
+      computerDataList.push({
+        mesh: computer.group,
+        screenMesh: computer.screen,
+        style: style,
+        animOffset: Math.random() * 100,
+        animSpeed: 0.5 + Math.random() * 1.5,
+        pattern: ['matrix', 'dots', 'bars', 'scan'][index % 4] as ComputerData['pattern'],
+      });
     });
 
-    // Add orbital ring
-    const ringGeo = new THREE.TorusGeometry(1.3, 0.02, 4, 32);
+    function createRetroComputer(style: typeof computerStyles[0], variant: number) {
+      const group = new THREE.Group();
+
+      // Vary the shape slightly based on variant
+      const isWide = variant % 3 === 0;
+      const isTall = variant % 3 === 1;
+
+      const width = isWide ? 0.12 : 0.09;
+      const height = isTall ? 0.10 : 0.08;
+      const depth = 0.06;
+
+      // Main body
+      const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+      const bodyMat = new THREE.MeshBasicMaterial({ color: style.body });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      group.add(body);
+
+      // Trim/bezel
+      const bezelGeo = new THREE.BoxGeometry(width * 0.9, height * 0.75, depth * 0.1);
+      const bezelMat = new THREE.MeshBasicMaterial({ color: style.trim });
+      const bezel = new THREE.Mesh(bezelGeo, bezelMat);
+      bezel.position.z = depth / 2;
+      bezel.position.y = height * 0.08;
+      group.add(bezel);
+
+      // Screen
+      const screenGeo = new THREE.PlaneGeometry(width * 0.7, height * 0.55);
+      const screenMat = new THREE.MeshBasicMaterial({ color: style.screen });
+      const screen = new THREE.Mesh(screenGeo, screenMat);
+      screen.position.z = depth / 2 + 0.005;
+      screen.position.y = height * 0.1;
+      group.add(screen);
+
+      // Base/stand
+      const baseGeo = new THREE.BoxGeometry(width * 0.8, height * 0.15, depth * 0.8);
+      const baseMat = new THREE.MeshBasicMaterial({ color: style.trim });
+      const base = new THREE.Mesh(baseGeo, baseMat);
+      base.position.y = -height / 2 - height * 0.05;
+      group.add(base);
+
+      // Add some flair based on variant (floppy drive, vents, etc)
+      if (variant % 4 === 0) {
+        // Floppy slot
+        const floppyGeo = new THREE.BoxGeometry(width * 0.5, height * 0.08, 0.01);
+        const floppyMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+        const floppy = new THREE.Mesh(floppyGeo, floppyMat);
+        floppy.position.z = depth / 2 + 0.001;
+        floppy.position.y = -height * 0.25;
+        group.add(floppy);
+      }
+
+      if (variant % 4 === 1) {
+        // Power LED
+        const ledGeo = new THREE.BoxGeometry(0.008, 0.008, 0.005);
+        const ledMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const led = new THREE.Mesh(ledGeo, ledMat);
+        led.position.z = depth / 2 + 0.003;
+        led.position.y = -height * 0.3;
+        led.position.x = width * 0.35;
+        group.add(led);
+      }
+
+      group.scale.setScalar(0.8);
+
+      return { group, screen };
+    }
+
+    // Create screen textures for animation
+    const screenCanvases: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }[] = [];
+    computerDataList.forEach(() => {
+      const c = document.createElement('canvas');
+      c.width = 32;
+      c.height = 24;
+      screenCanvases.push({ canvas: c, ctx: c.getContext('2d')! });
+    });
+
+    function updateScreens(time: number) {
+      computerDataList.forEach((data, index) => {
+        const { ctx, canvas } = screenCanvases[index];
+        const t = time * data.animSpeed + data.animOffset;
+
+        // Clear with screen color
+        ctx.fillStyle = `#${data.style.screen.toString(16).padStart(6, '0')}`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw pattern
+        const textColor = `#${data.style.text.toString(16).padStart(6, '0')}`;
+        ctx.fillStyle = textColor;
+
+        switch (data.pattern) {
+          case 'matrix':
+            // Falling columns
+            for (let x = 0; x < canvas.width; x += 4) {
+              const offset = (t * 20 + x * 7) % canvas.height;
+              for (let y = 0; y < canvas.height; y += 3) {
+                if ((y + offset) % 12 < 6 && Math.random() > 0.3) {
+                  ctx.fillRect(x, y, 2, 2);
+                }
+              }
+            }
+            break;
+
+          case 'dots':
+            // Random computing dots
+            for (let i = 0; i < 20; i++) {
+              const x = (Math.sin(t + i * 0.5) * 0.5 + 0.5) * canvas.width;
+              const y = (Math.cos(t * 0.7 + i * 0.3) * 0.5 + 0.5) * canvas.height;
+              ctx.fillRect(x, y, 2, 2);
+            }
+            break;
+
+          case 'bars':
+            // Horizontal scan bars
+            for (let y = 0; y < canvas.height; y += 4) {
+              const width = (Math.sin(t + y * 0.2) * 0.5 + 0.5) * canvas.width;
+              ctx.fillRect(0, y, width, 2);
+            }
+            break;
+
+          case 'scan':
+            // Scanning line
+            const scanY = (t * 10) % canvas.height;
+            ctx.fillRect(0, scanY, canvas.width, 2);
+            // Some static dots
+            for (let i = 0; i < 10; i++) {
+              if (Math.random() > 0.5) {
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
+              }
+            }
+            break;
+        }
+
+        // Update texture
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.magFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
+        (data.screenMesh.material as THREE.MeshBasicMaterial).map = texture;
+        (data.screenMesh.material as THREE.MeshBasicMaterial).needsUpdate = true;
+      });
+    }
+
+    // Orbital ring
+    const ringGeo = new THREE.TorusGeometry(1.4, 0.015, 4, 40);
     const ringMaterial = new THREE.MeshBasicMaterial({
       color: colors.accent,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.4,
     });
     const ring = new THREE.Mesh(ringGeo, ringMaterial);
-    ring.rotation.x = Math.PI / 2.5;
+    ring.rotation.x = Math.PI / 2.2;
     ring.rotation.y = 0.3;
 
-    // Add small nodes on the ring
-    const nodeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+    // Ring nodes
+    const nodeGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
     const nodeMaterial = new THREE.MeshBasicMaterial({ color: colors.accent });
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
       const node = new THREE.Mesh(nodeGeo, nodeMaterial);
-      node.position.x = Math.cos(angle) * 1.3;
-      node.position.z = Math.sin(angle) * 1.3;
+      node.position.x = Math.cos(angle) * 1.4;
+      node.position.z = Math.sin(angle) * 1.4;
       ring.add(node);
     }
 
     // Group everything
     const globeGroup = new THREE.Group();
-    globeGroup.add(globe);
+    globeGroup.add(sphere);
     globeGroup.add(wireframeMesh);
-    globeGroup.add(landGroup);
+    globeGroup.add(computersGroup);
     globeGroup.add(ring);
     scene.add(globeGroup);
 
     // Drag controls
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
-    let velocity = { x: 0.003, y: 0.001 }; // Initial auto-rotation
+    let velocity = { x: 0.003, y: 0.0005 };
     const friction = 0.95;
     const sensitivity = 0.005;
 
@@ -131,26 +373,17 @@
 
     canvas.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-
       const deltaX = e.clientX - previousMousePosition.x;
       const deltaY = e.clientY - previousMousePosition.y;
-
       velocity.x = deltaX * sensitivity;
       velocity.y = deltaY * sensitivity;
-
       globeGroup.rotation.y += velocity.x;
       globeGroup.rotation.x += velocity.y;
-
       previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
-    canvas.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-      isDragging = false;
-    });
+    canvas.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('mouseleave', () => { isDragging = false; });
 
     // Touch support
     canvas.addEventListener('touchstart', (e) => {
@@ -162,63 +395,54 @@
     canvas.addEventListener('touchmove', (e) => {
       if (!isDragging) return;
       e.preventDefault();
-
       const deltaX = e.touches[0].clientX - previousMousePosition.x;
       const deltaY = e.touches[0].clientY - previousMousePosition.y;
-
       velocity.x = deltaX * sensitivity;
       velocity.y = deltaY * sensitivity;
-
       globeGroup.rotation.y += velocity.x;
       globeGroup.rotation.x += velocity.y;
-
       previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     });
 
-    canvas.addEventListener('touchend', () => {
-      isDragging = false;
-    });
+    canvas.addEventListener('touchend', () => { isDragging = false; });
 
-    // Resize handler
+    // Resize
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      const size = Math.min(rect.width, rect.height);
       renderer.setSize(rect.width, rect.height);
       camera.aspect = rect.width / rect.height;
       camera.updateProjectionMatrix();
     }
 
-    // Animation loop
+    // Animation
+    let time = 0;
     function animate() {
       requestAnimationFrame(animate);
+      time += 0.016;
 
       if (!isDragging) {
-        // Apply friction to velocity
         velocity.x *= friction;
         velocity.y *= friction;
-
-        // Keep minimum rotation if not reduced motion
-        if (!prefersReducedMotion) {
-          if (Math.abs(velocity.x) < 0.001) velocity.x = 0.002;
-        }
-
+        if (!prefersReducedMotion && Math.abs(velocity.x) < 0.001) velocity.x = 0.002;
         globeGroup.rotation.y += velocity.x;
         globeGroup.rotation.x += velocity.y;
       }
 
-      // Rotate ring independently
       ring.rotation.z += 0.002;
+
+      // Update screen animations
+      if (!prefersReducedMotion) {
+        updateScreens(time);
+      }
 
       renderer.render(scene, camera);
     }
 
-    // Initialize
     resize();
     window.addEventListener('resize', resize);
 
-    // Start animation
     if (prefersReducedMotion) {
-      // Just render once
+      updateScreens(0);
       renderer.render(scene, camera);
     } else {
       animate();
