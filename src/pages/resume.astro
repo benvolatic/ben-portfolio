@@ -1,0 +1,141 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TechChip from '../components/TechChip.astro';
+
+const experience = [
+  {
+    title: 'Full-Stack Developer',
+    company: 'Freelance / Personal Projects',
+    period: '2022 – Present',
+    highlights: [
+      'Built and deployed production web applications using React, TypeScript, and Ruby on Rails',
+      'Developed cross-platform mobile applications with React Native and Expo',
+      'Implemented CI/CD pipelines with GitHub Actions and Cloudflare Pages',
+      'Designed and maintained RESTful APIs with PostgreSQL and Supabase backends',
+    ],
+  },
+  {
+    title: 'Infrastructure Administrator',
+    company: 'Self-Hosted Homelab',
+    period: '2021 – Present',
+    highlights: [
+      'Architected Proxmox VE cluster with high-availability VM configuration',
+      'Configured pfSense firewall with VLAN segmentation and VPN tunnels',
+      'Deployed secure external access using Cloudflare Tunnels (zero-trust)',
+      'Managed self-hosted services: Nextcloud, Plex, NAS with redundant storage',
+    ],
+  },
+];
+
+const skills = {
+  Frontend: ['React', 'TypeScript', 'React Native', 'Expo', 'Tailwind CSS', 'HTML/CSS'],
+  Backend: ['Ruby on Rails', 'PostgreSQL', 'Supabase', 'REST APIs', 'Node.js'],
+  Infrastructure: ['Proxmox VE', 'pfSense', 'Cloudflare', 'Docker', 'Linux', 'Networking'],
+  Tools: ['Git', 'GitHub Actions', 'VS Code', 'Figma', 'CI/CD'],
+};
+---
+
+<Layout
+  title="Resume"
+  description="Ben Nelson's resume — Full-stack developer with frontend focus and real infrastructure experience."
+>
+  <section class="container-main py-16 sm:py-24">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Resume</h1>
+        <p class="mt-2 text-gray-400">Full-Stack Developer with frontend focus</p>
+      </div>
+      <a href="/resume.pdf" class="btn-primary">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Download PDF
+      </a>
+    </div>
+
+    <!-- Resume Content -->
+    <div class="mt-12 rounded-xl border border-gray-700/50 bg-dark-800/30 p-8 sm:p-12">
+      <!-- Header -->
+      <header class="border-b border-gray-700/50 pb-8">
+        <h2 class="text-2xl font-bold text-white sm:text-3xl">Benjamin Nelson</h2>
+        <p class="mt-2 text-lg text-accent">Full-Stack Engineer</p>
+        <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400">
+          <a href="mailto:ben@ben-nelson.dev" class="hover:text-accent transition-colors">
+            ben@ben-nelson.dev
+          </a>
+          <a href="https://ben-nelson.dev" class="hover:text-accent transition-colors">
+            ben-nelson.dev
+          </a>
+          <a href="https://github.com/benvolatic" target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">
+            github.com/benvolatic
+          </a>
+          <a href="https://linkedin.com/in/bennelson" target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">
+            linkedin.com/in/bennelson
+          </a>
+        </div>
+      </header>
+
+      <!-- Summary -->
+      <section class="mt-8">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Summary</h3>
+        <p class="mt-4 text-gray-300 leading-relaxed">
+          Self-taught full-stack developer with strong frontend skills (React, TypeScript, React Native)
+          and solid backend experience (Ruby on Rails, PostgreSQL). Unique background in infrastructure
+          and homelab administration provides deep understanding of networking, security, and system
+          operations. Looking for opportunities to build impactful products with skilled teams.
+        </p>
+      </section>
+
+      <!-- Experience -->
+      <section class="mt-10">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Experience</h3>
+        <div class="mt-6 space-y-8">
+          {experience.map((job) => (
+            <div>
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 class="font-semibold text-white">{job.title}</h4>
+                <span class="font-mono text-sm text-gray-500">{job.period}</span>
+              </div>
+              <p class="text-accent">{job.company}</p>
+              <ul class="mt-3 space-y-2">
+                {job.highlights.map((highlight) => (
+                  <li class="flex items-start gap-2 text-sm text-gray-300">
+                    <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-600"></span>
+                    {highlight}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Skills -->
+      <section class="mt-10">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Skills</h3>
+        <div class="mt-6 grid gap-6 sm:grid-cols-2">
+          {Object.entries(skills).map(([category, items]) => (
+            <div>
+              <h4 class="font-mono text-sm font-medium text-accent">{category}</h4>
+              <div class="mt-3 flex flex-wrap gap-2">
+                {items.map((skill) => <TechChip label={skill} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Education -->
+      <section class="mt-10">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Education</h3>
+        <div class="mt-4">
+          <h4 class="font-semibold text-white">Self-Taught Developer</h4>
+          <p class="mt-1 text-sm text-gray-400">
+            Continuous learning through documentation, courses, open source contributions, and hands-on projects.
+            Strong believer in learning by building.
+          </p>
+        </div>
+      </section>
+    </div>
+  </section>
+</Layout>

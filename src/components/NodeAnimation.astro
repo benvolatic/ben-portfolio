@@ -1,0 +1,159 @@
+---
+// Lightweight canvas-based node network animation
+// Respects prefers-reduced-motion
+---
+
+<div class="node-animation-container absolute inset-0 -z-10 overflow-hidden opacity-40">
+  <canvas id="node-canvas" class="h-full w-full"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('node-canvas') as HTMLCanvasElement;
+  const ctx = canvas?.getContext('2d');
+
+  if (canvas && ctx) {
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    interface Node {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+    }
+
+    let nodes: Node[] = [];
+    let animationId: number;
+    let width: number;
+    let height: number;
+
+    const config = {
+      nodeCount: 40,
+      maxDistance: 150,
+      nodeColor: 'rgba(59, 130, 246, 0.6)', // accent blue
+      lineColor: 'rgba(59, 130, 246, 0.15)',
+      speed: prefersReducedMotion ? 0 : 0.3,
+    };
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+    }
+
+    function initNodes() {
+      nodes = [];
+      for (let i = 0; i < config.nodeCount; i++) {
+        nodes.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * config.speed,
+          vy: (Math.random() - 0.5) * config.speed,
+          radius: Math.random() * 2 + 1,
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw connections
+      ctx.strokeStyle = config.lineColor;
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < config.maxDistance) {
+            const opacity = 1 - distance / config.maxDistance;
+            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity * 0.15})`;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw nodes
+      ctx.fillStyle = config.nodeColor;
+      for (const node of nodes) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function update() {
+      if (prefersReducedMotion) return;
+
+      for (const node of nodes) {
+        node.x += node.vx;
+        node.y += node.vy;
+
+        // Bounce off edges
+        if (node.x < 0 || node.x > width) node.vx *= -1;
+        if (node.y < 0 || node.y > height) node.vy *= -1;
+
+        // Keep in bounds
+        node.x = Math.max(0, Math.min(width, node.x));
+        node.y = Math.max(0, Math.min(height, node.y));
+      }
+    }
+
+    function animate() {
+      update();
+      draw();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function init() {
+      resize();
+      initNodes();
+
+      if (prefersReducedMotion) {
+        // Just draw once for reduced motion
+        draw();
+      } else {
+        animate();
+      }
+    }
+
+    // Debounced resize handler
+    let resizeTimeout: number;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = window.setTimeout(() => {
+        cancelAnimationFrame(animationId);
+        init();
+      }, 100);
+    });
+
+    // Use IntersectionObserver to pause when not visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !prefersReducedMotion) {
+            animate();
+          } else {
+            cancelAnimationFrame(animationId);
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(canvas);
+
+    // Initialize
+    init();
+  }
+</script>

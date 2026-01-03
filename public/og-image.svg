@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0a0a0f"/>
+  <text x="100" y="250" font-family="system-ui, sans-serif" font-size="72" font-weight="bold" fill="#ffffff">Ben Nelson</text>
+  <text x="100" y="330" font-family="system-ui, sans-serif" font-size="36" fill="#3b82f6">Full-Stack Engineer</text>
+  <text x="100" y="400" font-family="monospace" font-size="24" fill="#9ca3af">React • TypeScript • Ruby on Rails • Infrastructure</text>
+  <text x="100" y="500" font-family="monospace" font-size="20" fill="#6b7280">ben-nelson.dev</text>
+</svg>

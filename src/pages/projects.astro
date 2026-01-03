@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { projects } from '../content/projects';
+---
+
+<Layout
+  title="Projects"
+  description="Featured projects including WebRTC applications, Rails backends, homelab infrastructure, and production deployments."
+>
+  <section class="container-main py-16 sm:py-24">
+    <div class="max-w-2xl">
+      <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Projects</h1>
+      <p class="mt-4 text-lg text-gray-400">
+        A selection of projects that showcase my range — from frontend applications to backend systems to infrastructure.
+        Each project taught me something valuable about building software that works in the real world.
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-8 lg:grid-cols-2">
+      {projects.map((project) => (
+        <ProjectCard project={project} />
+      ))}
+    </div>
+  </section>
+</Layout>
