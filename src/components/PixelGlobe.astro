@@ -206,28 +206,24 @@
     const devicesGroup = new THREE.Group();
     const deviceDataList: DeviceData[] = [];
 
-    // Device positions
+    // Device positions - major cities, 1-2 per continent
     const devicePositions: { lat: number; lon: number; type: DeviceType }[] = [
       // North America
-      { lat: 45, lon: -100, type: 'desktop' },
-      { lat: 38, lon: -122, type: 'server' },
-      { lat: 40, lon: -74, type: 'router' },
+      { lat: 40.7, lon: -74, type: 'desktop' },    // New York
+      { lat: 34, lon: -118, type: 'server' },      // Los Angeles
       // Europe
-      { lat: 51, lon: 0, type: 'desktop' },
-      { lat: 48, lon: 2, type: 'switch' },
-      { lat: 52, lon: 13, type: 'router' },
+      { lat: 51.5, lon: -0.1, type: 'desktop' },   // London
+      { lat: 48.9, lon: 2.3, type: 'router' },     // Paris
       // Asia
-      { lat: 35, lon: 139, type: 'desktop' },
-      { lat: 31, lon: 121, type: 'server' },
-      { lat: 37, lon: 127, type: 'router' },
-      { lat: 22, lon: 114, type: 'switch' },
+      { lat: 35.7, lon: 139.7, type: 'desktop' }, // Tokyo
+      { lat: 31.2, lon: 121.5, type: 'server' },  // Shanghai
       // Australia
-      { lat: -34, lon: 151, type: 'desktop' },
+      { lat: -33.9, lon: 151.2, type: 'router' }, // Sydney
       // South America
-      { lat: -23, lon: -46, type: 'router' },
+      { lat: -23.5, lon: -46.6, type: 'desktop' }, // São Paulo
       // Africa
-      { lat: -26, lon: 28, type: 'switch' },
-      { lat: 30, lon: 31, type: 'desktop' },
+      { lat: 30, lon: 31.2, type: 'switch' },      // Cairo
+      { lat: -26.2, lon: 28, type: 'router' },     // Johannesburg
     ];
 
     function createDesktopPC(): { group: THREE.Group; leds: THREE.Mesh[] } {
@@ -329,7 +325,7 @@
       mouse.position.set(0.045, -0.025, 0.03);
       group.add(mouse);
 
-      group.scale.setScalar(0.7);
+      group.scale.setScalar(1.2);
       return { group, leds };
     }
 
